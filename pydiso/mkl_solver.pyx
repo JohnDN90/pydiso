@@ -351,6 +351,16 @@ cdef class MKLPardisoSolver:
                 self._analyze()
                 self._analyzed = True
 
+    def factor(self):
+        """factor()
+        Factorize the current matrix.
+        """
+        if not self._analyzed:
+            self._analyze()
+            self._analyzed = True
+        if not self._factored:
+            self._factor()
+
     def refactor(self, A):
         """solver.refactor(A)
         re-use a symbolic factorization with a new `A` matrix.
