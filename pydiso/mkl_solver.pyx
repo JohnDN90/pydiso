@@ -206,7 +206,7 @@ cdef class MKLPardisoSolver:
         for i in range(64):
             self.handle[i] = NULL
 
-    def __init__(self, A, matrix_type=None, factor=True, verbose=False):
+    def __init__(self, A, matrix_type=None, factor=True, verbose=False, ordering=2):
         '''ParidsoSolver(A, matrix_type=None, factor=True, verbose=False)
         An interface to the intel MKL pardiso sparse matrix solver.
 
@@ -230,6 +230,8 @@ cdef class MKLPardisoSolver:
             Whether to perform the factorization stage upon instantiation of the class.
         verbose : bool, optional
             Enable verbose output from the pardiso solver.
+        ordering : int, optional
+            Specifies the fill-in reducing ordering method for the input matrix.
 
         Notes
         -----
@@ -317,6 +319,7 @@ cdef class MKLPardisoSolver:
             mkl_set_progress(mkl_no_progress)
 
         self._set_A(A.data)
+        self.set_iparm(1, ordering)
         self._analyze()
         self._factored = False
         if factor:
