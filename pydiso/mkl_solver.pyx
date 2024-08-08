@@ -193,6 +193,7 @@ cdef class MKLPardisoSolver:
     cdef int_t _is_32
     cdef int_t mat_type
     cdef int_t _factored
+    cdef int_t _analyzed
     cdef size_t shape[2]
     cdef PyThread_type_lock lock
     cdef void * a
@@ -206,7 +207,7 @@ cdef class MKLPardisoSolver:
         for i in range(64):
             self.handle[i] = NULL
 
-    def __init__(self, A, matrix_type=None, factor=True, verbose=False, ordering=2):
+    def __init__(self, A, matrix_type=None, factor=True, verbose=False, ordering=2, analyze=True):
         '''ParidsoSolver(A, matrix_type=None, factor=True, verbose=False)
         An interface to the intel MKL pardiso sparse matrix solver.
 
@@ -232,6 +233,8 @@ cdef class MKLPardisoSolver:
             Enable verbose output from the pardiso solver.
         ordering : int, optional
             Specifies the fill-in reducing ordering method for the input matrix.
+        analyze : bool, optional
+            Whether to perform the fill-in reducing ordering upon instantiation of the class.
 
         Notes
         -----
@@ -320,10 +323,33 @@ cdef class MKLPardisoSolver:
 
         self._set_A(A.data)
         self.set_iparm(1, ordering)
-        self._analyze()
+        self._analyzed = False
+        if analyze:
+            self._analyze()
+            self._analyzed = True
         self._factored = False
         if factor:
             self._factor()
+
+    def analyze(self, ordering=None):
+        """solver.analyze(ordering=None)
+        perform fill-in reducing ordering on the current matrix.
+
+        Parameters
+        ----------
+        ordering : int or None, optional
+            If int, specifies the fill-in reducing ordering method for the input matrix.
+            If None, the fill-in reducing ordering method is left unchanged.
+        """
+        if ordering is not None:
+            if self.iparm[1] != ordering:
+                self.set_iparm(1, ordering)
+                self._analyze()
+                self._analyzed = True
+        else:
+            if not self._analyzed:
+                self._analyze()
+                self._analyzed = True
 
     def refactor(self, A):
         """solver.refactor(A)
@@ -348,6 +374,9 @@ cdef class MKLPardisoSolver:
         A.sort_indices()
 
         self._set_A(A.data)
+        if not self._analyzed:
+            self._analyze()
+            self._analyzed = True
         self._factor()
 
     cdef _initialized(self):
